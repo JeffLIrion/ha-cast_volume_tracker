@@ -13,4 +13,4 @@ The idea is that for all your cast devices, you would setup a `cast_volume_track
 
 ## Configuration
 
-For configuration information, see the [README](https://github.com/JeffLIrion/ha-cast_volume_tracker/README.md#configuration).
+For configuration information, see the [README](https://github.com/JeffLIrion/ha-cast_volume_tracker/blob/master/README.md#configuration).

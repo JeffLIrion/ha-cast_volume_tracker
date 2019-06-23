@@ -1,3 +1,8 @@
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+
+**HACS URL:** [JeffLIrion/ha-cast-volume-tracker](https://github.com/JeffLIrion/ha-cast_volume_tracker)
+
+
 # Cast Volume Tracker
 
 This component does the following:

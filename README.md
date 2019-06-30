@@ -13,7 +13,7 @@ This component does the following:
 * When a group turns on, the volume for each of its members will be set to the average value of its members (excluding any members provided in its `members_excluded_when_off` parameter)
 * During group playback, the volume of all of its members will be kept normalized
 
-The idea is that for all your cast devices, you would setup a `cast_volume_tracker` and replace all `media_player.volume_set` service calls with `cast_volume_tracker.volume_set`.  The usage is the same, except that the entity ID should be for the `cast_volume_tracker` instead of the `media_player` (i.e., `cast_volume_tracker.computer_speakers` instead of `media_player.computer_speakers`).
+The idea is that for all your cast devices, you would setup a `cast_volume_tracker` and replace all `media_player.volume_set`/`mute`/`down`/`up` service calls with `cast_volume_tracker.volume_set`/`mute`/`down`/`up`.  The usage is the same, except that the entity ID should be for the `cast_volume_tracker` instead of the `media_player` (i.e., `cast_volume_tracker.computer_speakers` instead of `media_player.computer_speakers`).
 
 
 ## Configuration

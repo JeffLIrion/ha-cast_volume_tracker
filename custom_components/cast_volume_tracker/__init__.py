@@ -4,7 +4,7 @@ import logging
 import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
-from homeassistant.const import ATTR_ENTITY_ID, CONF_NAME, EVENT_HOMEASSISTANT_START, SERVICE_VOLUME_MUTE, SERVICE_VOLUME_SET, STATE_IDLE, STATE_PAUSED, STATE_PLAYING
+from homeassistant.const import ATTR_ENTITY_ID, CONF_NAME, EVENT_HOMEASSISTANT_START, SERVICE_VOLUME_DOWN, SERVICE_VOLUME_UP, SERVICE_VOLUME_MUTE, SERVICE_VOLUME_SET, STATE_IDLE, STATE_PAUSED, STATE_PLAYING
 from homeassistant.components.media_player.const import ATTR_MEDIA_VOLUME_LEVEL, ATTR_MEDIA_VOLUME_MUTED
 from homeassistant.components.media_player.const import DOMAIN as MEDIA_PLAYER_DOMAIN
 from homeassistant.helpers.entity_component import EntityComponent
@@ -29,6 +29,10 @@ CONF_OFF_SCRIPT = 'off_script'
 CONF_ON_SCRIPT = 'on_script'
 CONF_PARENTS = 'parents'
 
+VALUE_MIN = 0.
+VALUE_MAX = 100.
+VALUE_STEP = 5.
+
 
 SERVICE_DEFAULT_SCHEMA = vol.Schema({
     vol.Optional(ATTR_ENTITY_ID): cv.entity_ids
@@ -42,6 +46,14 @@ SERVICE_VOLUME_MUTE_SCHEMA = vol.Schema({
 SERVICE_VOLUME_SET_SCHEMA = vol.Schema({
     vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
     vol.Required(ATTR_MEDIA_VOLUME_LEVEL): vol.Coerce(float),
+})
+
+SERVICE_VOLUME_DOWN = vol.Schema({
+    vol.Optional(ATTR_ENTITY_ID): cv.entity_ids
+})
+
+SERVICE_VOLUME_UP = vol.Schema({
+    vol.Optional(ATTR_ENTITY_ID): cv.entity_ids
 })
 
 
@@ -147,6 +159,16 @@ class CastVolumeTracker(object):
     def volume_set(self, volume_level):
         """Set the volume."""
         return []
+
+    def volume_down(self):
+        """Decrease the volume."""
+        volume_level = max(self.value - VALUE_STEP, VALUE_MIN) / VALUE_MAX
+        return self.volume_set(volume_level)
+
+    def volume_up(self):
+        """Increase the volume."""
+        volume_level = min(self.value + VALUE_STEP, VALUE_MAX) / VALUE_MAX
+        return self.volume_set(volume_level)
 
 
 # =========================================================================== #
@@ -522,6 +544,24 @@ class CastVolumeTrackerEntity(RestoreEntity):
     async def async_volume_mute(self, is_volume_muted):
         """Mute the volume."""
         service_args = self._cast_volume_tracker.volume_mute(is_volume_muted)
+
+        for args in service_args:
+            await self.hass.services.async_call(*args)
+
+        await self.async_update_ha_state()
+
+    async def async_volume_down(self):
+        """Decrease the volume."""
+        service_args = self._cast_volume_tracker.volume_down()
+
+        for args in service_args:
+            await self.hass.services.async_call(*args)
+
+        await self.async_update_ha_state()
+
+    async def async_volume_up(self):
+        """Increase the volume."""
+        service_args = self._cast_volume_tracker.volume_up()
 
         for args in service_args:
             await self.hass.services.async_call(*args)

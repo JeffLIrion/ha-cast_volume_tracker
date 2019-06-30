@@ -48,11 +48,11 @@ SERVICE_VOLUME_SET_SCHEMA = vol.Schema({
     vol.Required(ATTR_MEDIA_VOLUME_LEVEL): vol.Coerce(float),
 })
 
-SERVICE_VOLUME_DOWN = vol.Schema({
+SERVICE_VOLUME_DOWN_SCHEMA = vol.Schema({
     vol.Optional(ATTR_ENTITY_ID): cv.entity_ids
 })
 
-SERVICE_VOLUME_UP = vol.Schema({
+SERVICE_VOLUME_UP_SCHEMA = vol.Schema({
     vol.Optional(ATTR_ENTITY_ID): cv.entity_ids
 })
 
@@ -451,6 +451,16 @@ async def async_setup(hass, config):
     component.async_register_entity_service(
         SERVICE_VOLUME_SET, SERVICE_VOLUME_SET_SCHEMA,
         'async_volume_set'
+    )
+
+    component.async_register_entity_service(
+        SERVICE_VOLUME_DOWN, SERVICE_VOLUME_DOWN_SCHEMA,
+        'async_volume_down'
+    )
+
+    component.async_register_entity_service(
+        SERVICE_VOLUME_UP, SERVICE_VOLUME_UP_SCHEMA,
+        'async_volume_up'
     )
 
     await component.async_add_entities(entities)

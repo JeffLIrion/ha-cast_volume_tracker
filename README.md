@@ -59,6 +59,7 @@ When the configuration variable `members` is provided, the cast volume tracker w
 * **name** (required): friendly name for the cast volume tracker
 * **members**: the object ID's of the group members (e.g., `kitchen_home` for `media_player.kitchen_home`)
 * **members_excluded_when_off** (optional): when turning the group on, the volume for all speakers will be set to the average of the values of the cast volume trackers *not* included in this list
+* **members_start_muted** (optional): when turning the group on, these members will be muted
 * **off_script**: a script or sequence of actions to perform when the speaker turns off
 * **on_script**: a script or sequence of actions to perform when the speaker turns on
 

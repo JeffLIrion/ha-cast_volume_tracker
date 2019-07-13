@@ -58,6 +58,9 @@ SERVICE_VOLUME_UP_SCHEMA = vol.Schema({
 })
 
 
+CAST_NETWORK = dict()
+
+
 # =========================================================================== #
 #                                                                             #
 #                       Cast Volume Tracker (base class)                      #
@@ -66,8 +69,7 @@ SERVICE_VOLUME_UP_SCHEMA = vol.Schema({
 class CastVolumeTracker(object):
     """A class for storing information about a cast device."""
 
-    def __init__(self, cast_network, object_id, cast_is_on, value, is_volume_muted):
-        self.cast_network = cast_network
+    def __init__(self, object_id, cast_is_on, value, is_volume_muted):
         self.object_id = object_id
 
         # associated media player
@@ -79,7 +81,7 @@ class CastVolumeTracker(object):
         self.is_volume_muted = is_volume_muted
         self.value = value
 
-        self.cast_network.casts[object_id] = self
+        CAST_NETWORK[object_id] = self
 
     @property
     def state_attributes(self):
@@ -180,8 +182,8 @@ class CastVolumeTracker(object):
 class CastVolumeTrackerGroup(CastVolumeTracker):
     """A class for storing information about a Chromecast group."""
 
-    def __init__(self, cast_network, object_id, cast_is_on, value, is_volume_muted, members, members_excluded_when_off=None, members_start_muted=None):
-        super().__init__(cast_network, object_id, cast_is_on, value, is_volume_muted)
+    def __init__(self, object_id, cast_is_on, value, is_volume_muted, members, members_excluded_when_off=None, members_start_muted=None):
+        super().__init__(object_id, cast_is_on, value, is_volume_muted)
 
         # group members (i.e., object IDs)
         self.members = members
@@ -199,20 +201,20 @@ class CastVolumeTrackerGroup(CastVolumeTracker):
 
         # cast volume trackers
         self.cast_volume_trackers = [ENTITY_ID_FORMAT.format(member) for member in members]
-        self.cast_volume_trackers_with_default = [ENTITY_ID_FORMAT.format(member) for member in members if self.cast_network.casts[member].default_value is not None]
-        self.cast_volume_trackers_without_default = [ENTITY_ID_FORMAT.format(member) for member in members if self.cast_network.casts[member].default_value is None]
+        self.cast_volume_trackers_with_default = [ENTITY_ID_FORMAT.format(member) for member in members if CAST_NETWORK[member].default_value is not None]
+        self.cast_volume_trackers_without_default = [ENTITY_ID_FORMAT.format(member) for member in members if CAST_NETWORK[member].default_value is None]
 
     def _update_off_to_on(self, cast_volume_level):
         self.cast_is_on = True
         self.is_volume_muted = False
-        self.value = sum([self.cast_network.casts[member].value for member in self.members_when_off]) / len(self.members_when_off)
+        self.value = sum([CAST_NETWORK[member].value for member in self.members_when_off]) / len(self.members_when_off)
         self.cast_volume_level = self.expected_volume_level
 
         # set the `cast_is_on` and `is_volume_muted` attributes for the speakers in the group
         for member in self.members_start_unmuted:
-            self.cast_network.casts[member].set_attributes(True, is_volume_muted=False)
+            CAST_NETWORK[member].set_attributes(True, is_volume_muted=False)
         for member in self.members_start_muted:
-            self.cast_network.casts[member].set_attributes(True, is_volume_muted=True)
+            CAST_NETWORK[member].set_attributes(True, is_volume_muted=True)
 
         # 1) Set the cast volume tracker volumes
         return [[DOMAIN, SERVICE_VOLUME_SET, {ATTR_ENTITY_ID: self.cast_volume_trackers, ATTR_MEDIA_VOLUME_LEVEL: 0.01*self.value}]]
@@ -224,11 +226,11 @@ class CastVolumeTrackerGroup(CastVolumeTracker):
 
         # set the `cast_is_on` and `is_volume_muted` attributes for the speakers in the group
         for member in self.members:
-            self.cast_network.casts[member].set_attributes(False, is_volume_muted=self.cast_network.casts[member].mute_when_off)
+            CAST_NETWORK[member].set_attributes(False, is_volume_muted=CAST_NETWORK[member].mute_when_off)
 
         # 1) Set the cast volume tracker volumes for members without default values
         # 2) Set the cast volume tracker volumes for members with default values
-        return [[DOMAIN, SERVICE_VOLUME_SET, {ATTR_ENTITY_ID: self.cast_volume_trackers_without_default, ATTR_MEDIA_VOLUME_LEVEL: 0.01*self.value}]] + [[DOMAIN, SERVICE_VOLUME_SET, {ATTR_ENTITY_ID: member, ATTR_MEDIA_VOLUME_LEVEL: 0.01*self.cast_network.casts[member.replace(DOMAIN + '.', '')].default_value}] for member in self.cast_volume_trackers_with_default]
+        return [[DOMAIN, SERVICE_VOLUME_SET, {ATTR_ENTITY_ID: self.cast_volume_trackers_without_default, ATTR_MEDIA_VOLUME_LEVEL: 0.01*self.value}]] + [[DOMAIN, SERVICE_VOLUME_SET, {ATTR_ENTITY_ID: member, ATTR_MEDIA_VOLUME_LEVEL: 0.01*CAST_NETWORK[member.replace(DOMAIN + '.', '')].default_value}] for member in self.cast_volume_trackers_with_default]
 
     def _update_on_to_on(self, cast_volume_level):
         if not self.equilibrium:
@@ -236,13 +238,13 @@ class CastVolumeTrackerGroup(CastVolumeTracker):
 
         self.cast_volume_level = cast_volume_level
 
-        if all([self.cast_network.casts[member].is_volume_muted for member in self.members]):
+        if all([CAST_NETWORK[member].is_volume_muted for member in self.members]):
             self.is_volume_muted = True
         else:
             self.is_volume_muted = False
 
         if not self.is_volume_muted:
-            self.value = 100.*self.cast_volume_level * len(self.members) / sum([not self.cast_network.casts[member].is_volume_muted for member in self.members])
+            self.value = 100.*self.cast_volume_level * len(self.members) / sum([not CAST_NETWORK[member].is_volume_muted for member in self.members])
 
         # 1) Set the cast volume trackers
         return [[DOMAIN, SERVICE_VOLUME_SET, {ATTR_ENTITY_ID: self.cast_volume_trackers, ATTR_MEDIA_VOLUME_LEVEL: 0.01*self.value}]]*2
@@ -263,12 +265,12 @@ class CastVolumeTrackerGroup(CastVolumeTracker):
     def volume_set(self, volume_level):
         """Set the volume level for the group members."""
         if not self.cast_is_on:
-            off_cast_volume_trackers = [ENTITY_ID_FORMAT.format(member) for member in self.members_when_off if not self.cast_network.casts[member].cast_is_on]
+            off_cast_volume_trackers = [ENTITY_ID_FORMAT.format(member) for member in self.members_when_off if not CAST_NETWORK[member].cast_is_on]
 
             if not off_cast_volume_trackers:
                 return []
 
-            new_value = (100.*volume_level*len(off_cast_volume_trackers) + sum([self.cast_network.casts[member].value for member in self.members_when_off if self.cast_network.casts[member].cast_is_on])) / len(self.members_when_off)
+            new_value = (100.*volume_level*len(off_cast_volume_trackers) + sum([CAST_NETWORK[member].value for member in self.members_when_off if CAST_NETWORK[member].cast_is_on])) / len(self.members_when_off)
             self.set_attributes(value=new_value)
 
             return [[DOMAIN, SERVICE_VOLUME_SET, {ATTR_ENTITY_ID: off_cast_volume_trackers, ATTR_MEDIA_VOLUME_LEVEL: volume_level}]]
@@ -287,8 +289,8 @@ class CastVolumeTrackerGroup(CastVolumeTracker):
 class CastVolumeTrackerIndividual(CastVolumeTracker):
     """A class for storing information about an individual Chromecast speaker."""
 
-    def __init__(self, cast_network, object_id, cast_is_on, value, is_volume_muted, parents=None, mute_when_off=True, default_volume_level=None):
-        super().__init__(cast_network, object_id, cast_is_on, value, is_volume_muted)
+    def __init__(self, object_id, cast_is_on, value, is_volume_muted, parents=None, mute_when_off=True, default_volume_level=None):
+        super().__init__(object_id, cast_is_on, value, is_volume_muted)
 
         # groups to which this speaker belongs
         if parents is None:
@@ -308,7 +310,7 @@ class CastVolumeTrackerIndividual(CastVolumeTracker):
     @property
     def parent_is_on(self):
         """Whether or not a parent group is playing."""
-        return any([self.cast_network.casts[parent].cast_is_on for parent in self.parents])
+        return any([CAST_NETWORK[parent].cast_is_on for parent in self.parents])
 
     def _update_off_to_on(self, cast_volume_level):
         if self.parent_is_on:
@@ -363,21 +365,6 @@ class CastVolumeTrackerIndividual(CastVolumeTracker):
 
         # 1) Set the media player volume
         return [[MEDIA_PLAYER_DOMAIN, SERVICE_VOLUME_SET, {ATTR_ENTITY_ID: self.media_player, ATTR_MEDIA_VOLUME_LEVEL: self.expected_volume_level}]]
-
-
-# =========================================================================== #
-#                                                                             #
-#                                Cast Network                                 #
-#                                                                             #
-# =========================================================================== #
-class CastNetwork(object):
-    """A class for tracking and controlling cast devices."""
-
-    def __init__(self):
-        self.casts = {}
-
-
-CN = CastNetwork()
 
 
 # =========================================================================== #
@@ -447,9 +434,9 @@ async def async_setup(hass, config):
                 value = 0.
 
         if CONF_MEMBERS not in cfg:
-            entities.append(CastVolumeTrackerEntity(hass, object_id, name, CastVolumeTrackerIndividual(CN, object_id, cast_is_on, value, is_volume_muted, cfg[CONF_PARENTS], cfg[CONF_MUTE_WHEN_OFF], cfg.get(CONF_DEFAULT_VOLUME_LEVEL)), off_script, on_script))
+            entities.append(CastVolumeTrackerEntity(hass, object_id, name, CastVolumeTrackerIndividual(object_id, cast_is_on, value, is_volume_muted, cfg[CONF_PARENTS], cfg[CONF_MUTE_WHEN_OFF], cfg.get(CONF_DEFAULT_VOLUME_LEVEL)), off_script, on_script))
         else:
-            entities.append(CastVolumeTrackerEntity(hass, object_id, name, CastVolumeTrackerGroup(CN, object_id, cast_is_on, value, is_volume_muted, cfg[CONF_MEMBERS], cfg[CONF_MEMBERS_EXCLUDED_WHEN_OFF], cfg[CONF_MEMBERS_START_MUTED]), off_script, on_script))
+            entities.append(CastVolumeTrackerEntity(hass, object_id, name, CastVolumeTrackerGroup(object_id, cast_is_on, value, is_volume_muted, cfg[CONF_MEMBERS], cfg[CONF_MEMBERS_EXCLUDED_WHEN_OFF], cfg[CONF_MEMBERS_START_MUTED]), off_script, on_script))
 
     if not entities:
         return False

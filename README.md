@@ -50,7 +50,7 @@ For an individual cast device, the configuration variables are:
 * **name** (required): friendly name for the cast volume tracker
 * **parents** (optional): groups to which the cast device belongs
 * **mute_when_off** (optional, default=`true`): if `true`, when the cast device turns off the volume will be set to 0, effectively muting it; if `false`, the volume will be set to `default_volume_level` (if provided) or left as is
-* **default_volume_level** (optional): if provided, the volume for the cast device will be set to this level when the cast is turned off
+* **default_volume_template** (optional): if provided, the volume for the cast device will be set to this level when the cast is turned off
 * **off_script**: a script or sequence of actions to perform when the speaker turns off
 * **on_script**: a script or sequence of actions to perform when the speaker turns on
 

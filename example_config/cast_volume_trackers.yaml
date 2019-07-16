@@ -6,7 +6,18 @@ computer_speakers:
 kitchen_home:
   name: 'Kitchen Home'
   mute_when_off: false
-  default_volume_level: 0.16
+  default_volume_template: >
+    {% if time().hour < 7 %}
+      0.3
+    {% elif time().hour < 8 %}
+      0.4
+    {% elif time().hour >= 22 %}
+      0.5
+    {% elif time().hour >= 23 %}
+      0.4
+    {% else %}
+      0.6
+    {% endif %}
   parents:
   - kitchen_speakers
 

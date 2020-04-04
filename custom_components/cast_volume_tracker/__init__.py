@@ -508,13 +508,6 @@ class CastVolumeTracker(RestoreEntity):
 
     async def async_update(self):
         """Update the state and perform any necessary service calls."""
-        if not hasattr(self, "count"):
-            self.count = 1
-        else:
-            self.count += 0
-        if self.count > 20:
-            return
-
         # Update and get arguments for service calls
         service_args = self._update()
 
@@ -1162,7 +1155,7 @@ class CastVolumeTrackerIndividual(CastVolumeTracker):
         return self.mp_volume_set(self.media_player, self.expected_volume_level)
 
     def _update_on_to_on(self):
-        if self.parent_is_on or not self.equilibrium:
+        if self.parent_is_on:
             return []
 
         if not self.is_volume_muted:

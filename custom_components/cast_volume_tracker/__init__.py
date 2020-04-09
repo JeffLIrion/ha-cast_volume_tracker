@@ -140,9 +140,7 @@ async def async_setup(hass, config):
         on_script = cfg.get(CONF_ON_SCRIPT)
 
         # Get the `cast_is_on`, `value`, and `is_volume_muted` attributes from the media player
-        cast_state_obj = hass.states.get(
-            "{0}.{1}".format(MEDIA_PLAYER_DOMAIN, object_id)
-        )
+        cast_state_obj = hass.states.get(f"{MEDIA_PLAYER_DOMAIN}.{object_id}")
         if cast_state_obj:
             cast_is_on = cast_state_obj.state in CAST_ON_STATES
             mp_volume_level = cast_state_obj.attributes.get(ATTR_MEDIA_VOLUME_LEVEL)
@@ -319,8 +317,8 @@ class CastVolumeTracker(RestoreEntity):
         # strings
         self.entity_id = ENTITY_ID_FORMAT.format(object_id)
         self.object_id = object_id
-        self.media_player = "{0}.{1}".format(MEDIA_PLAYER_DOMAIN, object_id)
-        self._entities = ["{0}.{1}".format(MEDIA_PLAYER_DOMAIN, object_id)]
+        self.media_player = f"{MEDIA_PLAYER_DOMAIN}.{object_id}"
+        self._entities = [f"{MEDIA_PLAYER_DOMAIN}.{object_id}"]
         self._name = name
 
         # state attributes - floats
@@ -833,7 +831,7 @@ class CastVolumeTrackerGroup(CastVolumeTracker):
             if self.is_volume_muted
             else 0.01
             * self.value
-            * sum((not member.is_volume_muted for member in self.members))
+            * sum(not member.is_volume_muted for member in self.members)
             / len(self.members)
         )
 
@@ -920,10 +918,8 @@ class CastVolumeTrackerGroup(CastVolumeTracker):
             #   EXAMPLE: the `cast_volume_tracker.volume_set` service was used
             #   to change the volume for a member
             elif any(
-                (
-                    round(member.value, 3) != round(self.value, 3)
-                    for member in self.members
-                )
+                round(member.value, 3) != round(self.value, 3)
+                for member in self.members
             ):
                 self.value_prev = self.value
                 self.value = (
@@ -951,7 +947,7 @@ class CastVolumeTrackerGroup(CastVolumeTracker):
             # Prevent an infinite loop
             if (
                 old_equilibrium
-                and sum((not member.is_volume_muted for member in self.members)) > 1
+                and sum(not member.is_volume_muted for member in self.members) > 1
             ):
                 self.mp_volume_level = self.mp_volume_level_prev
 
